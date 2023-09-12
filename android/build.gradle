@@ -1,0 +1,62 @@
+group 'com.wee.flutter.tflite.wee_flutter_tflite'
+version '1.0-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.7.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    if (project.android.hasProperty("namespace")) {
+        namespace 'com.wee.flutter.tflite.wee_flutter_tflite'
+    }
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
+    }
+
+    defaultConfig {
+        minSdkVersion 23
+        compileSdk 33
+    }
+
+    dependencies {
+        implementation 'androidx.core:core-ktx:1.8.0'
+
+        implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.0'
+        // Import the GPU delegate plugin Library for GPU inference
+        implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
+        implementation 'org.tensorflow:tensorflow-lite-gpu:2.9.0'
+    }
+
+
+}
