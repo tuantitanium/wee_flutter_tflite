@@ -17,7 +17,15 @@ abstract class WeeFlutterTflitePlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  void init(TFLiteUsing using, int maxResult){
-    instance.init(using, maxResult);
+  void init(String modelPath, TFLiteUsing using, int maxResult, double scoreThreshold){
+    instance.init(modelPath, using, maxResult, scoreThreshold);
+  }
+
+  void initWithLabels(String modelPath, List<String> labels, TFLiteUsing using, int maxResult){
+    instance.initWithLabels(modelPath, labels, using, maxResult);
+  }
+
+  Future<DetectionResult> detection(String imageFilePath) {
+    return instance.detection(imageFilePath);
   }
 }

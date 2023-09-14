@@ -25,18 +25,22 @@ import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.Rot90Op
+import org.tensorflow.lite.support.label.Category
 import org.tensorflow.lite.task.core.BaseOptions
 import org.tensorflow.lite.task.core.vision.ImageProcessingOptions
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import org.tensorflow.lite.task.vision.classifier.ImageClassifier
+
+class ImageClassificationResult(val time: Long, val data: List<Category>)
 
 class ImageClassifierHelper(
     var threshold: Float = 0.5f,
     var numThreads: Int = 2,
     var maxResults: Int = 3,
     var currentDelegate: Int = 0,
-    var currentModel: Int = 0,
     val context: Context,
+    val modelPath: String,
+    val scoreThreshold: Double,
     val imageClassifierListener: ClassifierListener?
 ) {
     private var imageClassifier: ImageClassifier? = null
@@ -53,6 +57,9 @@ class ImageClassifierHelper(
         val optionsBuilder = ImageClassifier.ImageClassifierOptions.builder()
             .setScoreThreshold(threshold)
             .setMaxResults(maxResults)
+            .setScoreThreshold(scoreThreshold.toFloat())
+            .setDisplayNamesLocale("dict.txt")
+
 
         val baseOptionsBuilder = BaseOptions.builder().setNumThreads(numThreads)
 
@@ -74,18 +81,10 @@ class ImageClassifierHelper(
 
         optionsBuilder.setBaseOptions(baseOptionsBuilder.build())
 
-        val modelName =
-            when (currentModel) {
-                MODEL_MOBILENETV1 -> "mobilenetv1.tflite"
-                MODEL_EFFICIENTNETV0 -> "efficientnet-lite0.tflite"
-                MODEL_EFFICIENTNETV1 -> "efficientnet-lite1.tflite"
-                MODEL_EFFICIENTNETV2 -> "efficientnet-lite2.tflite"
-                else -> "mobilenetv1.tflite"
-            }
 
         try {
             imageClassifier =
-                ImageClassifier.createFromFileAndOptions(context, modelName, optionsBuilder.build())
+                ImageClassifier.createFromFileAndOptions(context, modelPath, optionsBuilder.build())
         } catch (e: IllegalStateException) {
             imageClassifierListener?.onError(
                 "Image classifier failed to initialize. See error logs for details"
@@ -94,7 +93,7 @@ class ImageClassifierHelper(
         }
     }
 
-    fun classify(image: Bitmap, rotation: Int) {
+    fun classify(image: Bitmap, rotation: Int): ImageClassificationResult{
         if (imageClassifier == null) {
             setupImageClassifier()
         }
@@ -119,10 +118,12 @@ class ImageClassifierHelper(
 
         val results = imageClassifier?.classify(tensorImage, imageProcessingOptions)
         inferenceTime = SystemClock.uptimeMillis() - inferenceTime
-        imageClassifierListener?.onResults(
-            results,
-            inferenceTime
-        )
+        val data = results?.firstOrNull()
+        if (data != null){
+            return ImageClassificationResult(inferenceTime, data.categories.sortedBy { it.score })
+        }
+        return ImageClassificationResult(inferenceTime, emptyList())
+
     }
 
     // Receive the device rotation (Surface.x values range from 0->3) and return EXIF orientation
@@ -152,10 +153,7 @@ class ImageClassifierHelper(
         const val DELEGATE_CPU = 0
         const val DELEGATE_GPU = 1
         const val DELEGATE_NNAPI = 2
-        const val MODEL_MOBILENETV1 = 0
-        const val MODEL_EFFICIENTNETV0 = 1
-        const val MODEL_EFFICIENTNETV1 = 2
-        const val MODEL_EFFICIENTNETV2 = 3
+
 
         private const val TAG = "ImageClassifierHelper"
     }
